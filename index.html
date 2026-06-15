@@ -281,15 +281,19 @@
         childName:state.name, age:state.age, language:state.language,
         history:state.messages.slice(0,-1).slice(-12), message:text
       })
-    }).then(function(r){ return r.json(); }).then(function(data){
+    }).then(function(r){
+      if(!r.ok){ return r.text().then(function(t){ throw new Error("HTTP "+r.status+(t?": "+t.slice(0,200):"")); }); }
+      return r.json();
+    }).then(function(data){
       popTyping();
       var reply=(data && data.text) ? data.text : "Hmm, daar moet ik even over nadenken. Vraag het eens op een andere manier!";
       bubble("kizzo",reply);
       state.messages.push({role:"kizzo",text:reply});
       save(); speak(reply);
-    }).catch(function(){
+    }).catch(function(err){
       popTyping();
-      bubble("kizzo","Oeps, ik kon je even niet horen. Probeer het zo nog een keer!");
+      console.error("Kizzo chat-fout:",err);
+      bubble("kizzo","Hmm, ik kan mijn brein even niet bereiken. Draait Kizzo al online (met de serverfunctie en je sleutel), of kijk je nu alleen naar de schermpjes?");
     }).then(function(){ sending=false; updateSend(); });
   }
 

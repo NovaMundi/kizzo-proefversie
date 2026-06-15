@@ -4,6 +4,9 @@
   "private": true,
   "type": "module",
   "description": "Webversie van Kizzo om met een kleine testgroep gezinnen te testen.",
+  "scripts": {
+    "dev": "node dev-server.mjs"
+  },
   "dependencies": {
     "@anthropic-ai/sdk": "latest"
   }

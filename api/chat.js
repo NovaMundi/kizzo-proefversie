@@ -1,7 +1,12 @@
 import Anthropic from "@anthropic-ai/sdk";
 
-// Leest ANTHROPIC_API_KEY uit de omgevingsvariabelen (zet je in Vercel).
-const client = new Anthropic();
+// Client wordt pas gemaakt bij het eerste gesprek, zodat de omgevingsvariabele
+// (ANTHROPIC_API_KEY) op tijd geladen is, ook bij lokaal draaien.
+let _client = null;
+function client() {
+  if (!_client) _client = new Anthropic();
+  return _client;
+}
 
 function ageBand(age) {
   const a = Number(age) || 8;
@@ -52,52 +57,60 @@ TAAL
 Antwoord altijd direct als Kizzo. Toon nooit je eigen redenering of uitleg over jezelf, alleen wat je tegen het kind zegt.`;
 }
 
+// Kern: bouwt het gesprek om en vraagt Claude om Kizzo's antwoord.
+// Wordt gebruikt door zowel de Vercel-functie als de lokale dev-server.
+export async function chat({ childName, age, language, history, message } = {}) {
+  const name = (childName || "vriend").toString().slice(0, 40);
+  const lang = language === "en" ? "en" : "nl";
+  const text = (message || "").toString().trim();
+  if (!text) {
+    const err = new Error("message is verplicht");
+    err.status = 400;
+    throw err;
+  }
+
+  const turns = Array.isArray(history) ? history.slice(-12) : [];
+  const msgs = [];
+  for (const turn of turns) {
+    if (!turn || !turn.text) continue;
+    msgs.push({
+      role: turn.role === "kizzo" ? "assistant" : "user",
+      content: turn.text.toString().slice(0, 1000),
+    });
+  }
+  msgs.push({ role: "user", content: text.slice(0, 1000) });
+  while (msgs.length && msgs[0].role === "assistant") msgs.shift();
+
+  const response = await client().messages.create({
+    model: "claude-opus-4-8", // wil je goedkoper? vervang door "claude-sonnet-4-6"
+    max_tokens: 500,
+    system: systemPrompt({ childName: name, age, language: lang }),
+    messages: msgs,
+  });
+
+  return (
+    response.content
+      .filter((b) => b.type === "text")
+      .map((b) => b.text)
+      .join("")
+      .trim() || "Hmm, daar moet ik even over nadenken. Vraag het eens op een andere manier!"
+  );
+}
+
+// Vercel-serverfunctie.
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.status(405).json({ error: "Method not allowed" });
     return;
   }
   try {
-    const body = req.body || {};
-    const childName = (body.childName || "vriend").toString().slice(0, 40);
-    const age = body.age;
-    const language = body.language === "en" ? "en" : "nl";
-    const message = (body.message || "").toString().trim();
-    if (!message) {
-      res.status(400).json({ error: "message is verplicht" });
-      return;
-    }
-
-    // Bouw de gespreksgeschiedenis om naar het Claude-formaat (laatste 12 beurten).
-    const history = Array.isArray(body.history) ? body.history.slice(-12) : [];
-    const msgs = [];
-    for (const turn of history) {
-      if (!turn || !turn.text) continue;
-      msgs.push({
-        role: turn.role === "kizzo" ? "assistant" : "user",
-        content: turn.text.toString().slice(0, 1000),
-      });
-    }
-    msgs.push({ role: "user", content: message.slice(0, 1000) });
-    // De eerste beurt moet van het kind (user) zijn.
-    while (msgs.length && msgs[0].role === "assistant") msgs.shift();
-
-    const response = await client.messages.create({
-      model: "claude-opus-4-8", // wil je goedkoper? vervang door "claude-sonnet-4-6"
-      max_tokens: 500,
-      system: systemPrompt({ childName, age, language }),
-      messages: msgs,
-    });
-
-    const text = response.content
-      .filter((b) => b.type === "text")
-      .map((b) => b.text)
-      .join("")
-      .trim();
-
-    res.status(200).json({ text: text || "Hmm, daar moet ik even over nadenken. Vraag het eens op een andere manier!" });
+    const text = await chat(req.body || {});
+    res.status(200).json({ text });
   } catch (err) {
-    console.error("chat error:", err);
-    res.status(500).json({ error: "Kizzo kon even niet antwoorden. Probeer het zo nog eens." });
+    const status = err && err.status === 400 ? 400 : 500;
+    console.error("chat error:", err && err.message ? err.message : err);
+    res
+      .status(status)
+      .json({ error: status === 400 ? err.message : "Kizzo kon even niet antwoorden. Probeer het zo nog eens." });
   }
 }
