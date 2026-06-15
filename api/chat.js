@@ -54,6 +54,12 @@ VEILIGHEID
 TAAL
 - Antwoord in het ${taal}, dezelfde taal als waarin het kind praat.
 
+TEKENINGEN
+- Vraagt een kind om iets te zien, te tekenen, of "hoe ziet ... eruit?", dan mag je een eenvoudige, vrolijke tekening maken. Zet die tekening als SVG tussen de tags <tekening> en </tekening>.
+- Houd de tekening simpel, kleurrijk en kindvriendelijk: heldere vormen en een paar kleuren. Gebruik altijd een viewBox (bijvoorbeeld viewBox="0 0 200 200") zodat hij meeschaalt. Gebruik nooit <script>, nooit externe links of plaatjes, alleen gewone vormen.
+- Geef naast de tekening ook gewoon je korte gesproken antwoord en een vervolgvraag, buiten de tags.
+- Teken alleen als het echt helpt om iets te laten zien, niet bij elke vraag.
+
 Antwoord altijd direct als Kizzo. Toon nooit je eigen redenering of uitleg over jezelf, alleen wat je tegen het kind zegt.`;
 }
 
@@ -83,7 +89,7 @@ export async function chat({ childName, age, language, history, message } = {}) 
 
   const response = await client().messages.create({
     model: "claude-opus-4-8", // wil je goedkoper? vervang door "claude-sonnet-4-6"
-    max_tokens: 500,
+    max_tokens: 1500,
     system: systemPrompt({ childName: name, age, language: lang }),
     messages: msgs,
   });

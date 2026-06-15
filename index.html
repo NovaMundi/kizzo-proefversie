@@ -63,6 +63,8 @@
   .bubble{max-width:84%;padding:12px 16px;border-radius:20px;font-size:1.02rem;font-weight:600;line-height:1.5;white-space:pre-wrap;word-wrap:break-word}
   .b-kizzo{align-self:flex-start;background:#fff;color:var(--ink);border-bottom-left-radius:6px;box-shadow:0 2px 10px rgba(43,36,64,.07)}
   .b-child{align-self:flex-end;background:var(--purple);color:#fff;border-bottom-right-radius:6px}
+  .b-img{align-self:flex-start;padding:8px;max-width:78%}
+  .b-img img{display:block;width:100%;height:auto;border-radius:14px;background:#faf8ff}
   .typing{align-self:flex-start;display:flex;gap:5px;padding:14px 18px;background:#fff;border-radius:20px;border-bottom-left-radius:6px;box-shadow:0 2px 10px rgba(43,36,64,.07)}
   .typing span{width:8px;height:8px;border-radius:50%;background:#c9c2e0;animation:bounce 1.2s infinite}
   .typing span:nth-child(2){animation-delay:.2s}.typing span:nth-child(3){animation-delay:.4s}
@@ -232,9 +234,34 @@
     messages.scrollTop=messages.scrollHeight;
     return d;
   }
+  function extractDrawing(text){
+    var s=String(text||"");
+    var m=s.match(/<tekening>([\s\S]*?)<\/tekening>/i);
+    if(!m) return {svg:null,rest:s.trim()};
+    var rest=(s.slice(0,m.index)+s.slice(m.index+m[0].length)).replace(/\n{3,}/g,"\n\n").trim();
+    return {svg:m[1].trim(),rest:rest};
+  }
+  function safeSvg(svg){
+    if(!/^<svg[\s>]/i.test(svg)) return null;
+    return svg.replace(/<script[\s\S]*?<\/script>/gi,"").replace(/\son[a-z]+\s*=\s*("[^"]*"|'[^']*')/gi,"");
+  }
+  function addKizzo(text){
+    var d=extractDrawing(text);
+    if(d.svg){
+      var clean=safeSvg(d.svg);
+      if(clean){
+        var wrap=document.createElement("div"); wrap.className="bubble b-img";
+        var img=document.createElement("img"); img.alt="Tekening van Kizzo"; img.loading="lazy";
+        img.src="data:image/svg+xml,"+encodeURIComponent(clean);
+        wrap.appendChild(img); messages.appendChild(wrap);
+      }
+    }
+    if(d.rest) bubble("kizzo",d.rest);
+    messages.scrollTop=messages.scrollHeight;
+  }
   function renderAll(){
     messages.innerHTML="";
-    state.messages.forEach(function(m){ bubble(m.role,m.text); });
+    state.messages.forEach(function(m){ if(m.role==="kizzo") addKizzo(m.text); else bubble("child",m.text); });
   }
 
   // ── Voice output ──
@@ -279,7 +306,10 @@
       headers:{"content-type":"application/json"},
       body:JSON.stringify({
         childName:state.name, age:state.age, language:state.language,
-        history:state.messages.slice(0,-1).slice(-12), message:text
+        history:state.messages.slice(0,-1).slice(-12).map(function(m){
+          return m.role==="kizzo" ? {role:"kizzo", text:String(m.text).replace(/<tekening>[\s\S]*?<\/tekening>/gi," (Kizzo liet hier een tekening zien) ")} : m;
+        }),
+        message:text
       })
     }).then(function(r){
       if(!r.ok){ return r.text().then(function(t){ throw new Error("HTTP "+r.status+(t?": "+t.slice(0,200):"")); }); }
@@ -287,9 +317,9 @@
     }).then(function(data){
       popTyping();
       var reply=(data && data.text) ? data.text : "Hmm, daar moet ik even over nadenken. Vraag het eens op een andere manier!";
-      bubble("kizzo",reply);
+      addKizzo(reply);
       state.messages.push({role:"kizzo",text:reply});
-      save(); speak(reply);
+      save(); speak(extractDrawing(reply).rest);
     }).catch(function(err){
       popTyping();
       console.error("Kizzo chat-fout:",err);
