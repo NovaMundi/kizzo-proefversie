@@ -58,9 +58,61 @@ TEKENINGEN
 - Vraagt een kind om iets te zien, te tekenen, of "hoe ziet ... eruit?", dan mag je een eenvoudige, vrolijke tekening maken. Zet die tekening als SVG tussen de tags <tekening> en </tekening>.
 - Houd de tekening simpel, kleurrijk en kindvriendelijk: heldere vormen en een paar kleuren. Gebruik altijd een viewBox (bijvoorbeeld viewBox="0 0 200 200") zodat hij meeschaalt. Gebruik nooit <script>, nooit externe links of plaatjes, alleen gewone vormen.
 - Geef naast de tekening ook gewoon je korte gesproken antwoord en een vervolgvraag, buiten de tags.
-- Teken alleen als het echt helpt om iets te laten zien, niet bij elke vraag.
+- Teken alleen als het echt helpt om iets te laten zien, niet bij elke vraag. Gebruik tekeningen vooral voor uitleg, diagrammen of fantasie.
+
+FOTO'S
+- Wil een kind een ÉCHTE foto zien van iets dat bestaat (een dier, een plek, een plant, een voertuig, een planeet, een gebouw), vraag er dan om met <foto>onderwerp</foto>. Bijvoorbeeld: <foto>luiaard</foto> of <foto>Mount Everest</foto>.
+- Gebruik één duidelijk onderwerp, het liefst een enkel zelfstandig naamwoord of een bekende naam. Zet er verder niets in de tags.
+- Gebruik een foto voor echte dingen, en een tekening voor uitleg of fantasie. Meestal niet allebei in hetzelfde antwoord.
+- Geef naast de foto ook gewoon je korte antwoord en een vervolgvraag, buiten de tags.
 
 Antwoord altijd direct als Kizzo. Toon nooit je eigen redenering of uitleg over jezelf, alleen wat je tegen het kind zegt.`;
+}
+
+// Zoekt een veilige, echte foto bij een onderwerp via Wikipedia (encyclopedie).
+// Alleen Wikimedia-afbeeldingen, server-side opgehaald. Faalt netjes (geeft null).
+async function resolvePhoto(topic, language) {
+  if (typeof fetch !== "function") return null;
+  const langs = language === "en" ? ["en", "nl"] : ["nl", "en"];
+  for (const lang of langs) {
+    try {
+      const url = `https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(topic)}`;
+      const r = await fetch(url, {
+        headers: { accept: "application/json", "user-agent": "KizzoProefversie/1.0 (kinder-leerproefversie)" },
+      });
+      if (!r.ok) continue;
+      const data = await r.json();
+      if (data.type === "disambiguation") continue;
+      const src = (data.thumbnail && data.thumbnail.source) || (data.originalimage && data.originalimage.source);
+      if (src && /^https:\/\/[a-z0-9-]+\.wikimedia\.org\//i.test(src)) {
+        return { src, title: data.title || topic };
+      }
+    } catch (e) {
+      /* probeer de volgende taal */
+    }
+  }
+  return null;
+}
+
+// Vervangt Kizzo's <foto>onderwerp</foto> door een veilige fotokaart (of haalt
+// de tag weg als er geen foto te vinden is). Het model kiest alleen het onderwerp.
+async function processPhotos(text, language) {
+  const re = /<foto[^>]*>([\s\S]*?)<\/foto>/i;
+  const m = text.match(re);
+  let out = text;
+  if (m) {
+    const topic = m[1].replace(/<[^>]*>/g, "").trim().slice(0, 60);
+    let card = "";
+    if (topic) {
+      const photo = await resolvePhoto(topic, language);
+      if (photo) {
+        const caption = (photo.title + " (foto: Wikipedia)").replace(/[<>"]/g, "");
+        card = `<fotokaart src="${photo.src}" bijschrift="${caption}"></fotokaart>`;
+      }
+    }
+    out = out.replace(m[0], card);
+  }
+  return out.replace(/<foto[^>]*>[\s\S]*?<\/foto>/gi, "");
 }
 
 // Kern: bouwt het gesprek om en vraagt Claude om Kizzo's antwoord.
@@ -94,13 +146,13 @@ export async function chat({ childName, age, language, history, message } = {}) 
     messages: msgs,
   });
 
-  return (
+  const raw =
     response.content
       .filter((b) => b.type === "text")
       .map((b) => b.text)
       .join("")
-      .trim() || "Hmm, daar moet ik even over nadenken. Vraag het eens op een andere manier!"
-  );
+      .trim() || "Hmm, daar moet ik even over nadenken. Vraag het eens op een andere manier!";
+  return await processPhotos(raw, lang);
 }
 
 // Vercel-serverfunctie.
