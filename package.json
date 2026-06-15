@@ -1,0 +1,10 @@
+{
+  "name": "kizzo-proefversie",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Webversie van Kizzo om met een kleine testgroep gezinnen te testen.",
+  "dependencies": {
+    "@anthropic-ai/sdk": "latest"
+  }
+}

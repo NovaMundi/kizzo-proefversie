@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kizzo — ontdek alles wat je wilt weten</title>
+<meta name="description" content="Kizzo, het nieuwsgierige uiltje. Praat of typ en ontdek samen alles wat er in je koppie omgaat.">
+<style>
+  @font-face { font-family:"Baloo 2"; font-weight:700; font-display:swap; src:url("fonts/Baloo2-700.woff2") format("woff2"); }
+  @font-face { font-family:"Baloo 2"; font-weight:800; font-display:swap; src:url("fonts/Baloo2-800.woff2") format("woff2"); }
+  @font-face { font-family:"Nunito"; font-weight:400; font-style:normal; font-display:swap; src:url("fonts/Nunito-400.woff2") format("woff2"); }
+  @font-face { font-family:"Nunito"; font-weight:400; font-style:italic; font-display:swap; src:url("fonts/Nunito-400i.woff2") format("woff2"); }
+  @font-face { font-family:"Nunito"; font-weight:600; font-display:swap; src:url("fonts/Nunito-600.woff2") format("woff2"); }
+  @font-face { font-family:"Nunito"; font-weight:700; font-display:swap; src:url("fonts/Nunito-700.woff2") format("woff2"); }
+  @font-face { font-family:"Nunito"; font-weight:800; font-display:swap; src:url("fonts/Nunito-800.woff2") format("woff2"); }
+
+  :root{
+    --bg:#FFFBF4; --surface:#fff; --ink:#2B2440; --ink-soft:#5A5470;
+    --purple:#6C4FE0; --purple-dark:#5439C9; --purple-soft:#EFEAFE;
+    --orange:#F59B38; --teal:#2BB3A3;
+    --head:"Baloo 2",system-ui,sans-serif; --body:"Nunito",system-ui,sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{font-family:var(--body);color:var(--ink);background:var(--bg);-webkit-font-smoothing:antialiased;overflow:hidden}
+  h1,h2,h3{font-family:var(--head)}
+  button{font-family:var(--head);cursor:pointer;border:none}
+  button:focus-visible,input:focus-visible{outline:3px solid var(--purple);outline-offset:2px}
+
+  .app{height:100dvh;display:flex;flex-direction:column;max-width:680px;margin:0 auto;position:relative}
+  .screen{display:none;flex:1;min-height:0}
+  .screen.active{display:flex;flex-direction:column}
+
+  /* ── Setup ── */
+  #setup{align-items:center;justify-content:center;padding:24px;text-align:center;overflow:auto}
+  .setup-card{background:var(--surface);border-radius:28px;box-shadow:0 12px 40px rgba(43,36,64,.12);padding:34px 26px;width:100%;max-width:440px}
+  .owl{width:96px;height:96px;margin:0 auto 6px;display:block}
+  #setup h1{font-size:1.7rem;margin-bottom:4px}
+  #setup .sub{color:var(--ink-soft);font-weight:600;margin-bottom:22px}
+  .field{text-align:left;margin-bottom:18px}
+  .field label{display:block;font-family:var(--head);font-weight:700;font-size:.95rem;margin-bottom:8px}
+  .field input{width:100%;min-height:52px;border-radius:14px;border:2px solid #e7e2f3;background:#faf8ff;padding:0 16px;font-family:var(--body);font-size:1.05rem;font-weight:600;color:var(--ink)}
+  .ages{display:flex;flex-wrap:wrap;gap:8px}
+  .age{flex:1 0 auto;min-width:42px;min-height:46px;border-radius:12px;background:#faf8ff;border:2px solid #e7e2f3;font-weight:800;color:var(--ink-soft);font-size:1.05rem}
+  .age.sel{background:var(--purple);border-color:var(--purple);color:#fff}
+  .langs{display:flex;gap:8px}
+  .lang{flex:1;min-height:46px;border-radius:12px;background:#faf8ff;border:2px solid #e7e2f3;font-weight:800;color:var(--ink-soft)}
+  .lang.sel{background:var(--teal);border-color:var(--teal);color:#fff}
+  .btn-primary{width:100%;min-height:54px;border-radius:999px;background:var(--purple);color:#fff;font-size:1.1rem;font-weight:700;box-shadow:0 8px 20px rgba(108,79,224,.35);transition:transform .12s,background .15s}
+  .btn-primary:active{transform:scale(.97)}
+  .btn-primary:hover{background:var(--purple-dark)}
+  #setup .note{margin-top:16px;font-size:.82rem;color:var(--ink-soft);font-weight:600}
+
+  /* ── Chat ── */
+  .topbar{display:flex;align-items:center;gap:12px;padding:max(14px,env(safe-area-inset-top)) 16px 12px;background:rgba(255,251,244,.95);backdrop-filter:blur(8px);border-bottom:1px solid rgba(43,36,64,.07);flex-shrink:0}
+  .topbar .who{flex:1;min-width:0}
+  .topbar .who .name{font-family:var(--head);font-weight:800;font-size:1.05rem;line-height:1.1}
+  .topbar .who .sub{font-size:.72rem;color:var(--ink-soft);font-weight:700}
+  .icon-btn{width:42px;height:42px;border-radius:12px;background:var(--surface);box-shadow:0 2px 8px rgba(43,36,64,.08);display:flex;align-items:center;justify-content:center;color:var(--ink-soft);flex-shrink:0}
+  .icon-btn.on{background:var(--purple-soft);color:var(--purple)}
+
+  .chat{flex:1;overflow-y:auto;padding:18px 16px 8px;display:flex;flex-direction:column;gap:12px}
+  .bubble{max-width:84%;padding:12px 16px;border-radius:20px;font-size:1.02rem;font-weight:600;line-height:1.5;white-space:pre-wrap;word-wrap:break-word}
+  .b-kizzo{align-self:flex-start;background:#fff;color:var(--ink);border-bottom-left-radius:6px;box-shadow:0 2px 10px rgba(43,36,64,.07)}
+  .b-child{align-self:flex-end;background:var(--purple);color:#fff;border-bottom-right-radius:6px}
+  .typing{align-self:flex-start;display:flex;gap:5px;padding:14px 18px;background:#fff;border-radius:20px;border-bottom-left-radius:6px;box-shadow:0 2px 10px rgba(43,36,64,.07)}
+  .typing span{width:8px;height:8px;border-radius:50%;background:#c9c2e0;animation:bounce 1.2s infinite}
+  .typing span:nth-child(2){animation-delay:.2s}.typing span:nth-child(3){animation-delay:.4s}
+  @keyframes bounce{0%,60%,100%{transform:translateY(0);opacity:.5}30%{transform:translateY(-6px);opacity:1}}
+  @media (prefers-reduced-motion:reduce){.typing span{animation:none}}
+
+  .composer{display:flex;gap:10px;align-items:flex-end;padding:10px 14px max(12px,env(safe-area-inset-bottom));background:rgba(255,251,244,.95);backdrop-filter:blur(8px);border-top:1px solid rgba(43,36,64,.07);flex-shrink:0}
+  .composer textarea{flex:1;resize:none;min-height:52px;max-height:120px;border-radius:18px;border:2px solid #e7e2f3;background:#faf8ff;padding:14px 16px;font-family:var(--body);font-size:1.05rem;font-weight:600;color:var(--ink);line-height:1.3}
+  .mic,.send{width:52px;height:52px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff}
+  .mic{background:var(--orange);box-shadow:0 4px 12px rgba(245,155,56,.4)}
+  .mic.rec{background:#e0453f;animation:pulse 1s infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(224,69,63,.5)}50%{box-shadow:0 0 0 10px rgba(224,69,63,0)}}
+  .send{background:var(--purple);box-shadow:0 4px 12px rgba(108,79,224,.4)}
+  .send:disabled{opacity:.4}
+
+  /* ── Parent ── */
+  #parent{position:absolute;inset:0;background:var(--bg);z-index:20;padding:max(16px,env(safe-area-inset-top)) 18px 18px;overflow-y:auto;display:none}
+  #parent.show{display:block}
+  .p-head{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+  .p-head h2{font-size:1.3rem;flex:1}
+  #parent .lead{color:var(--ink-soft);font-weight:600;font-size:.92rem;margin-bottom:18px}
+  .transcript{display:flex;flex-direction:column;gap:8px;margin-bottom:24px}
+  .t-row{font-size:.95rem;line-height:1.45}
+  .t-row .lbl{font-family:var(--head);font-weight:700;font-size:.78rem;text-transform:uppercase;letter-spacing:.03em;display:block;margin-bottom:1px}
+  .t-row.child .lbl{color:var(--purple)}
+  .t-row.kizzo .lbl{color:var(--teal)}
+  .t-empty{color:var(--ink-soft);font-weight:600}
+  .p-actions{display:flex;flex-direction:column;gap:10px}
+  .btn-ghost{width:100%;min-height:50px;border-radius:14px;background:transparent;border:2px solid rgba(43,36,64,.18);color:var(--ink);font-weight:700;font-size:1rem}
+  .btn-ghost.danger{border-color:#e9b3b1;color:#c0403b}
+  .p-note{margin-top:18px;font-size:.82rem;color:var(--ink-soft);font-weight:600;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ══ SETUP ══ -->
+  <section id="setup" class="screen active">
+    <div class="setup-card">
+      <svg class="owl" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+        <circle cx="32" cy="34" r="26" fill="#6C4FE0"/><ellipse cx="32" cy="42" rx="14" ry="12" fill="#EFEAFE"/>
+        <circle cx="24" cy="28" r="8" fill="#fff"/><circle cx="40" cy="28" r="8" fill="#fff"/>
+        <circle cx="25.5" cy="29" r="3.5" fill="#2B2440"/><circle cx="38.5" cy="29" r="3.5" fill="#2B2440"/>
+        <path d="M32 33 L29 38 H35 Z" fill="#F59B38"/>
+        <path d="M14 18 L22 12 L24 20" fill="#6C4FE0"/><path d="M50 18 L42 12 L40 20" fill="#6C4FE0"/>
+        <circle cx="32" cy="44" r="3" fill="#F59B38" opacity=".85"/>
+      </svg>
+      <h1>Hoi! Ik ben Kizzo 🦉</h1>
+      <p class="sub">Wie gaat er met mij ontdekken?</p>
+      <div class="field">
+        <label for="name">Hoe heet je?</label>
+        <input id="name" type="text" autocomplete="given-name" placeholder="bijv. Owen" maxlength="40">
+      </div>
+      <div class="field">
+        <label>Hoe oud ben je?</label>
+        <div class="ages" id="ages"></div>
+      </div>
+      <div class="field">
+        <label>Welke taal?</label>
+        <div class="langs">
+          <button type="button" class="lang sel" data-lang="nl">Nederlands</button>
+          <button type="button" class="lang" data-lang="en">Speel-Engels</button>
+        </div>
+      </div>
+      <button type="button" class="btn-primary" id="start">Begin met ontdekken! 🚀</button>
+      <p class="note">Voor het kind: praat of typ gewoon. Voor de ouder: tik straks op het oog rechtsboven om mee te lezen.</p>
+    </div>
+  </section>
+
+  <!-- ══ CHAT ══ -->
+  <section id="chat" class="screen">
+    <div class="topbar">
+      <svg width="40" height="40" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+        <circle cx="32" cy="34" r="26" fill="#6C4FE0"/><ellipse cx="32" cy="42" rx="14" ry="12" fill="#EFEAFE"/>
+        <circle cx="24" cy="28" r="8" fill="#fff"/><circle cx="40" cy="28" r="8" fill="#fff"/>
+        <circle cx="25.5" cy="29" r="3.5" fill="#2B2440"/><circle cx="38.5" cy="29" r="3.5" fill="#2B2440"/>
+        <path d="M32 33 L29 38 H35 Z" fill="#F59B38"/>
+        <path d="M14 18 L22 12 L24 20" fill="#6C4FE0"/><path d="M50 18 L42 12 L40 20" fill="#6C4FE0"/>
+      </svg>
+      <div class="who"><div class="name">Kizzo</div><div class="sub">computer-uil · geen echte uil</div></div>
+      <button type="button" class="icon-btn on" id="speakToggle" title="Voorlezen aan/uit" aria-label="Voorlezen aan of uit">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a9 9 0 0 1 0 14"/></svg>
+      </button>
+      <button type="button" class="icon-btn" id="parentBtn" title="Voor papa/mama" aria-label="Ouderoverzicht">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
+
+    <div class="chat" id="messages" aria-live="polite"></div>
+
+    <form class="composer" id="composer">
+      <textarea id="input" rows="1" placeholder="Typ je vraag... of tik op de microfoon" maxlength="500"></textarea>
+      <button type="button" class="mic" id="mic" title="Praat tegen Kizzo" aria-label="Praat tegen Kizzo">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19v3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><rect x="9" y="2" width="6" height="13" rx="3"/></svg>
+      </button>
+      <button type="submit" class="send" id="send" title="Versturen" aria-label="Versturen" disabled>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+      </button>
+    </form>
+  </section>
+
+  <!-- ══ PARENT ══ -->
+  <div id="parent">
+    <div class="p-head">
+      <button type="button" class="icon-btn" id="parentClose" aria-label="Terug">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <h2>Ouderoverzicht</h2>
+    </div>
+    <p class="lead" id="parentLead">Hier lees je terug waar je kind nieuwsgierig naar was.</p>
+    <div class="transcript" id="transcript"></div>
+    <div class="p-actions">
+      <button type="button" class="btn-ghost" id="newChat">Nieuw gesprek beginnen</button>
+      <button type="button" class="btn-ghost" id="switchChild">Ander kind / opnieuw instellen</button>
+      <button type="button" class="btn-ghost danger" id="wipe">Dit gesprek wissen</button>
+    </div>
+    <p class="p-note">Dit is een proefversie om te testen met een kleine groep gezinnen. Gesprekken staan alleen op dit toestel. Praat je kind over iets zwaars? De Kindertelefoon luistert elke dag van 11.00 tot 21.00 uur, gratis: 0800-0432.</p>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var $ = function(id){ return document.getElementById(id); };
+  var state = { name:"", age:8, language:"nl", messages:[], speak:true, recognizing:false };
+
+  // ── Setup: ages 4..12 ──
+  var ages = $("ages");
+  for(var a=4;a<=12;a++){
+    var b=document.createElement("button");
+    b.type="button"; b.className="age"+(a===8?" sel":""); b.textContent=a; b.dataset.age=a;
+    ages.appendChild(b);
+  }
+  ages.addEventListener("click",function(e){
+    var t=e.target.closest(".age"); if(!t)return;
+    [].forEach.call(ages.children,function(c){c.classList.remove("sel");});
+    t.classList.add("sel"); state.age=Number(t.dataset.age);
+  });
+  document.querySelector(".langs").addEventListener("click",function(e){
+    var t=e.target.closest(".lang"); if(!t)return;
+    document.querySelectorAll(".lang").forEach(function(c){c.classList.remove("sel");});
+    t.classList.add("sel"); state.language=t.dataset.lang;
+  });
+
+  function storageKey(){ return "kizzo_chat_"+state.name.toLowerCase()+"_"+state.age; }
+  function save(){ try{ localStorage.setItem(storageKey(), JSON.stringify(state.messages)); localStorage.setItem("kizzo_profile", JSON.stringify({name:state.name,age:state.age,language:state.language,speak:state.speak})); }catch(e){} }
+  function load(){
+    try{
+      var prof=JSON.parse(localStorage.getItem("kizzo_profile")||"null");
+      if(prof){ state.name=prof.name||""; state.age=prof.age||8; state.language=prof.language||"nl"; state.speak=prof.speak!==false; }
+      if(prof && prof.name){ var m=JSON.parse(localStorage.getItem(storageKey())||"[]"); state.messages=Array.isArray(m)?m:[]; return true; }
+    }catch(e){}
+    return false;
+  }
+
+  // ── Screen switching ──
+  function show(id){ document.querySelectorAll(".screen").forEach(function(s){s.classList.remove("active");}); $(id).classList.add("active"); }
+
+  // ── Chat rendering ──
+  var messages=$("messages");
+  function bubble(role,text){
+    var d=document.createElement("div");
+    d.className="bubble "+(role==="kizzo"?"b-kizzo":"b-child");
+    d.textContent=text;
+    messages.appendChild(d);
+    messages.scrollTop=messages.scrollHeight;
+    return d;
+  }
+  function renderAll(){
+    messages.innerHTML="";
+    state.messages.forEach(function(m){ bubble(m.role,m.text); });
+  }
+
+  // ── Voice output ──
+  function speak(text){
+    if(!state.speak || !("speechSynthesis" in window)) return;
+    try{
+      window.speechSynthesis.cancel();
+      var u=new SpeechSynthesisUtterance(text.replace(/🦉|🌙|🚀|🔭|✨/g,""));
+      u.lang = state.language==="en" ? "en-US" : "nl-NL";
+      u.rate = state.age<=7 ? .95 : 1.0;
+      window.speechSynthesis.speak(u);
+    }catch(e){}
+  }
+  $("speakToggle").addEventListener("click",function(){
+    state.speak=!state.speak;
+    this.classList.toggle("on",state.speak);
+    if(!state.speak && "speechSynthesis" in window) window.speechSynthesis.cancel();
+    save();
+  });
+
+  // ── Send a message ──
+  var sending=false;
+  function pushTyping(){
+    var d=document.createElement("div"); d.className="typing"; d.id="typing";
+    d.innerHTML="<span></span><span></span><span></span>";
+    messages.appendChild(d); messages.scrollTop=messages.scrollHeight;
+  }
+  function popTyping(){ var t=$("typing"); if(t) t.remove(); }
+
+  function send(text){
+    text=(text||"").trim();
+    if(!text || sending) return;
+    sending=true; $("send").disabled=true;
+    bubble("child",text);
+    state.messages.push({role:"child",text:text});
+    save();
+    $("input").value=""; autosize();
+    pushTyping();
+
+    fetch("/api/chat",{
+      method:"POST",
+      headers:{"content-type":"application/json"},
+      body:JSON.stringify({
+        childName:state.name, age:state.age, language:state.language,
+        history:state.messages.slice(0,-1).slice(-12), message:text
+      })
+    }).then(function(r){ return r.json(); }).then(function(data){
+      popTyping();
+      var reply=(data && data.text) ? data.text : "Hmm, daar moet ik even over nadenken. Vraag het eens op een andere manier!";
+      bubble("kizzo",reply);
+      state.messages.push({role:"kizzo",text:reply});
+      save(); speak(reply);
+    }).catch(function(){
+      popTyping();
+      bubble("kizzo","Oeps, ik kon je even niet horen. Probeer het zo nog een keer!");
+    }).then(function(){ sending=false; updateSend(); });
+  }
+
+  // ── Composer ──
+  var input=$("input");
+  function autosize(){ input.style.height="auto"; input.style.height=Math.min(input.scrollHeight,120)+"px"; }
+  function updateSend(){ $("send").disabled = sending || input.value.trim()===""; }
+  input.addEventListener("input",function(){ autosize(); updateSend(); });
+  input.addEventListener("keydown",function(e){ if(e.key==="Enter" && !e.shiftKey){ e.preventDefault(); send(input.value); } });
+  $("composer").addEventListener("submit",function(e){ e.preventDefault(); send(input.value); });
+
+  // ── Voice input ──
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  var recog=null, mic=$("mic");
+  if(SR){
+    recog=new SR(); recog.continuous=false; recog.interimResults=false;
+    recog.addEventListener("result",function(e){
+      var said=e.results[0][0].transcript;
+      input.value=said; autosize(); updateSend();
+      send(said);
+    });
+    recog.addEventListener("end",function(){ state.recognizing=false; mic.classList.remove("rec"); });
+    recog.addEventListener("error",function(){ state.recognizing=false; mic.classList.remove("rec"); });
+    mic.addEventListener("click",function(){
+      if(state.recognizing){ try{recog.stop();}catch(e){} return; }
+      try{ recog.lang = state.language==="en"?"en-US":"nl-NL"; recog.start(); state.recognizing=true; mic.classList.add("rec"); }catch(e){}
+    });
+  } else {
+    mic.style.display="none";
+  }
+
+  // ── Greeting ──
+  function greeting(){
+    var nl = "Hoi "+state.name+"! Ik ben Kizzo. 🦉 Waar ben jij vandaag nieuwsgierig naar?";
+    var en = "Hi "+state.name+"! I'm Kizzo. 🦉 What are you curious about today?";
+    return state.language==="en"?en:nl;
+  }
+  function startChat(){
+    show("chat");
+    if(state.messages.length===0){
+      var g=greeting();
+      state.messages.push({role:"kizzo",text:g});
+      save();
+    }
+    renderAll();
+    updateSend();
+  }
+
+  // ── Start button ──
+  $("start").addEventListener("click",function(){
+    var n=$("name").value.trim();
+    if(!n){ $("name").focus(); return; }
+    state.name=n;
+    state.messages=[];
+    try{ var existing=JSON.parse(localStorage.getItem(storageKey())||"[]"); if(Array.isArray(existing)&&existing.length) state.messages=existing; }catch(e){}
+    save();
+    startChat();
+  });
+
+  // ── Parent view ──
+  function openParent(){
+    var t=$("transcript"); t.innerHTML="";
+    var convo=state.messages.filter(function(m,i){ return !(i===0 && m.role==="kizzo"); }); // hide opening greeting
+    if(convo.length===0){ var e=document.createElement("p"); e.className="t-empty"; e.textContent="Nog geen gesprek. Zodra je kind iets vraagt, lees je het hier terug."; t.appendChild(e); }
+    else convo.forEach(function(m){
+      var row=document.createElement("div"); row.className="t-row "+(m.role==="kizzo"?"kizzo":"child");
+      var lbl=document.createElement("span"); lbl.className="lbl"; lbl.textContent = m.role==="kizzo" ? "Kizzo" : state.name;
+      row.appendChild(lbl); row.appendChild(document.createTextNode(m.text));
+      t.appendChild(row);
+    });
+    $("parentLead").textContent = "Hier lees je terug waar "+state.name+" nieuwsgierig naar was.";
+    $("parent").classList.add("show");
+  }
+  $("parentBtn").addEventListener("click",openParent);
+  $("parentClose").addEventListener("click",function(){ $("parent").classList.remove("show"); });
+  $("newChat").addEventListener("click",function(){
+    if(!confirm("Een nieuw gesprek beginnen? Het huidige gesprek blijft bewaard tot je het wist.")) return;
+    state.messages=[]; save(); $("parent").classList.remove("show"); startChat();
+  });
+  $("switchChild").addEventListener("click",function(){
+    $("parent").classList.remove("show");
+    $("name").value=state.name;
+    show("setup");
+  });
+  $("wipe").addEventListener("click",function(){
+    if(!confirm("Dit gesprek echt wissen?")) return;
+    try{ localStorage.removeItem(storageKey()); }catch(e){}
+    state.messages=[]; $("parent").classList.remove("show"); startChat();
+  });
+
+  // ── Boot ──
+  if(load() && state.name){
+    document.querySelector('.lang.sel') && document.querySelector('.lang.sel').classList.remove('sel');
+    var ll=document.querySelector('.lang[data-lang="'+state.language+'"]'); if(ll) ll.classList.add('sel');
+    $("speakToggle").classList.toggle("on",state.speak);
+    startChat();
+  }
+})();
+</script>
+</body>
+</html>
