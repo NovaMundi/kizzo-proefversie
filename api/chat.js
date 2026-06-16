@@ -76,16 +76,28 @@ async function resolvePhoto(topic, language) {
   const langs = language === "en" ? ["en", "nl"] : ["nl", "en"];
   for (const lang of langs) {
     try {
-      const url = `https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(topic)}`;
-      const r = await fetch(url, {
+      // Zoek de best passende echte pagina (handelt doorverwijzingen, meervoud en
+      // verkeerde titels netjes af) en pak daar de thumbnail van.
+      const u =
+        `https://${lang}.wikipedia.org/w/api.php?action=query&format=json&redirects=1` +
+        `&generator=search&gsrsearch=${encodeURIComponent(topic)}&gsrnamespace=0&gsrlimit=5` +
+        `&prop=pageimages|pageprops&piprop=thumbnail&pithumbsize=640&origin=*`;
+      const r = await fetch(u, {
         headers: { accept: "application/json", "user-agent": "KizzoProefversie/1.0 (kinder-leerproefversie)" },
       });
       if (!r.ok) continue;
       const data = await r.json();
-      if (data.type === "disambiguation") continue;
-      const src = (data.thumbnail && data.thumbnail.source) || (data.originalimage && data.originalimage.source);
-      if (src && /^https:\/\/[a-z0-9-]+\.wikimedia\.org\//i.test(src)) {
-        return { src, title: data.title || topic };
+      const pages = data && data.query && data.query.pages;
+      if (!pages) continue;
+      const list = Object.keys(pages)
+        .map((k) => pages[k])
+        .sort((a, b) => (a.index || 99) - (b.index || 99));
+      for (const p of list) {
+        const isDisamb = p.pageprops && p.pageprops.disambiguation !== undefined;
+        const src = p.thumbnail && p.thumbnail.source;
+        if (!isDisamb && src && /^https:\/\/[a-z0-9-]+\.wikimedia\.org\//i.test(src)) {
+          return { src, title: p.title || topic };
+        }
       }
     } catch (e) {
       /* probeer de volgende taal */
