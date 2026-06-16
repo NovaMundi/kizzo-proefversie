@@ -1,5 +1,9 @@
 import Anthropic from "@anthropic-ai/sdk";
 
+// Geef de serverfunctie online wat meer tijd (een antwoord met tekening kan
+// langer duren dan de standaard 10 seconden van Vercel).
+export const maxDuration = 30;
+
 // Client wordt pas gemaakt bij het eerste gesprek, zodat de omgevingsvariabele
 // (ANTHROPIC_API_KEY) op tijd geladen is, ook bij lokaal draaien.
 let _client = null;
