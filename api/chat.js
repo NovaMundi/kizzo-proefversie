@@ -66,7 +66,7 @@ TAAL
 
 TEKENINGEN
 - Vraagt een kind om iets te zien, te tekenen, of "hoe ziet ... eruit?", dan mag je een eenvoudige, vrolijke tekening maken. Zet die tekening als SVG tussen de tags <tekening> en </tekening>.
-- Houd de tekening simpel, kleurrijk en kindvriendelijk: heldere vormen en een paar kleuren. Gebruik altijd een viewBox (bijvoorbeeld viewBox="0 0 200 200") zodat hij meeschaalt. Gebruik nooit <script>, nooit externe links of plaatjes, alleen gewone vormen.
+- Houd de tekening simpel, kleurrijk en kindvriendelijk: heldere vormen en een paar kleuren. Begin altijd met <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"> zodat de tekening goed laadt en meeschaalt. Gebruik nooit <script>, nooit externe links of plaatjes, alleen gewone vormen.
 - Geef naast de tekening ook gewoon je korte gesproken antwoord en een vervolgvraag, buiten de tags.
 - Teken alleen als het echt helpt om iets te laten zien, niet bij elke vraag. Gebruik tekeningen vooral voor uitleg, diagrammen of fantasie.
 

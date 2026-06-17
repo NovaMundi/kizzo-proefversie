@@ -237,12 +237,16 @@
   }
   function safeSvg(svg){
     if(!/^<svg[\s>]/i.test(svg)) return null;
-    return svg.replace(/<script[\s\S]*?<\/script>/gi,"").replace(/\son[a-z]+\s*=\s*("[^"]*"|'[^']*')/gi,"");
+    var out=svg.replace(/<script[\s\S]*?<\/script>/gi,"").replace(/\son[a-z]+\s*=\s*("[^"]*"|'[^']*')/gi,"");
+    if(!/\sxmlns\s*=/.test(out)) out=out.replace(/^<svg/i,'<svg xmlns="http://www.w3.org/2000/svg"');
+    return out;
   }
   function isSafePhoto(url){ return /^https:\/\/[a-z0-9-]+\.wikimedia\.org\//i.test(url||""); }
   function addImageBubble(src,caption){
     var wrap=document.createElement("div"); wrap.className="bubble b-img";
-    var img=document.createElement("img"); img.alt=caption||"Plaatje van Kizzo"; img.loading="lazy"; img.src=src;
+    var img=document.createElement("img"); img.alt=caption||"Plaatje van Kizzo"; img.loading="lazy";
+    img.onerror=function(){ wrap.remove(); };
+    img.src=src;
     wrap.appendChild(img);
     if(caption){ var c=document.createElement("div"); c.className="img-cap"; c.textContent=caption; wrap.appendChild(c); }
     messages.appendChild(wrap);
