@@ -400,18 +400,41 @@
   // ── Voice input ──
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   var recog=null, mic=$("mic");
+  function micSay(msg){ bubble("kizzo",msg); }
   if(SR){
-    recog=new SR(); recog.continuous=false; recog.interimResults=false;
+    recog=new SR(); recog.continuous=false; recog.interimResults=true; recog.maxAlternatives=1;
+    recog.addEventListener("start",function(){ state.recognizing=true; mic.classList.add("rec"); input.value=""; input.placeholder="Luisteren... 🎤"; });
     recog.addEventListener("result",function(e){
-      var said=e.results[0][0].transcript;
-      input.value=said; autosize(); updateSend();
-      send(said);
+      var txt="";
+      for(var i=0;i<e.results.length;i++) txt+=e.results[i][0].transcript;
+      input.value=txt.trim(); autosize(); updateSend();
     });
-    recog.addEventListener("end",function(){ state.recognizing=false; mic.classList.remove("rec"); });
-    recog.addEventListener("error",function(){ state.recognizing=false; mic.classList.remove("rec"); });
+    recog.addEventListener("end",function(){
+      state.recognizing=false; mic.classList.remove("rec");
+      input.placeholder="Typ je vraag... of tik op de microfoon";
+      var said=input.value.trim();
+      if(said) send(said);
+    });
+    recog.addEventListener("error",function(e){
+      state.recognizing=false; mic.classList.remove("rec");
+      input.placeholder="Typ je vraag... of tik op de microfoon";
+      var code=e&&e.error;
+      if(code==="not-allowed"||code==="service-not-allowed"){
+        micSay("Ik mag de microfoon nog niet gebruiken. Sta 'm toe via het microfoon- of slotje-icoontje in de adresbalk, en tik dan weer op de microfoon. Typen kan altijd!");
+      } else if(code==="no-speech"){
+        micSay("Ik hoorde even niks. Tik nog eens op de microfoon en praat duidelijk, of typ je vraag.");
+      } else if(code==="audio-capture"){
+        micSay("Ik vind geen microfoon op dit apparaat. Typen kan altijd!");
+      } else if(code==="network"){
+        micSay("De spraakherkenning had even geen verbinding. Probeer het zo nog eens, of typ je vraag.");
+      } else if(code && code!=="aborted"){
+        micSay("Ik kon je even niet verstaan. Probeer opnieuw of typ je vraag.");
+      }
+    });
     mic.addEventListener("click",function(){
       if(state.recognizing){ try{recog.stop();}catch(e){} return; }
-      try{ recog.lang = state.language==="en"?"en-US":"nl-NL"; recog.start(); state.recognizing=true; mic.classList.add("rec"); }catch(e){}
+      try{ recog.lang = state.language==="en"?"en-US":"nl-NL"; recog.start(); }
+      catch(e){ micSay("Ik kon de microfoon niet starten. Typen kan altijd!"); }
     });
   } else {
     mic.style.display="none";
