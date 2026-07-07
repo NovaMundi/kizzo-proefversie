@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { serverClient, userFromToken } from "./_supabase.js";
 
 // Geef de serverfunctie online wat meer tijd (een antwoord met tekening kan
 // langer duren dan de standaard 10 seconden van Vercel).
@@ -179,17 +180,115 @@ export async function chat({ childName, age, language, history, message } = {}) 
   return await processPhotos(raw, lang);
 }
 
+// Ingelogde modus: gesprek gekoppeld aan een kindprofiel, serverkant opgeslagen
+// in de database, zodat de ouder het later (op elk toestel) kan teruglezen.
+// Verifieert dat de ingelogde ouder eigenaar is van het kind.
+export async function chatPersist({ token, childId, conversationId, message } = {}) {
+  const text = (message || "").toString().trim();
+  if (!text) {
+    const err = new Error("message is verplicht");
+    err.status = 400;
+    throw err;
+  }
+  const sb = serverClient();
+  const user = await userFromToken(token);
+  if (!user) {
+    const err = new Error("niet ingelogd");
+    err.status = 401;
+    throw err;
+  }
+
+  // Kind ophalen én eigenaarschap afdwingen.
+  const { data: child, error: cErr } = await sb
+    .from("children")
+    .select("id,name,age,language")
+    .eq("id", childId)
+    .eq("parent_id", user.id)
+    .single();
+  if (cErr || !child) {
+    const err = new Error("kind niet gevonden");
+    err.status = 403;
+    throw err;
+  }
+
+  // Bestaand gesprek gebruiken (en controleren) of een nieuw gesprek beginnen.
+  let convId = conversationId || null;
+  if (convId) {
+    const { data: cv } = await sb
+      .from("conversations")
+      .select("id,child_id")
+      .eq("id", convId)
+      .single();
+    if (!cv || cv.child_id !== child.id) {
+      const err = new Error("gesprek niet gevonden");
+      err.status = 403;
+      throw err;
+    }
+  } else {
+    const { data: cv, error } = await sb
+      .from("conversations")
+      .insert({ child_id: child.id, title: text.slice(0, 60) })
+      .select("id")
+      .single();
+    if (error) throw error;
+    convId = cv.id;
+  }
+
+  // Recente geschiedenis uit de database halen als context voor Kizzo.
+  const { data: rows } = await sb
+    .from("messages")
+    .select("role,text")
+    .eq("conversation_id", convId)
+    .order("created_at", { ascending: true })
+    .limit(40);
+  const history = (rows || []).map((r) => ({
+    role: r.role === "kizzo" ? "kizzo" : "child",
+    text: r.text,
+  }));
+
+  const reply = await chat({
+    childName: child.name,
+    age: child.age,
+    language: child.language,
+    history,
+    message: text,
+  });
+
+  // Beide berichten opslaan en het gesprek "bijwerken".
+  await sb.from("messages").insert([
+    { conversation_id: convId, role: "child", text },
+    { conversation_id: convId, role: "kizzo", text: reply },
+  ]);
+  await sb.from("conversations").update({ updated_at: new Date().toISOString() }).eq("id", convId);
+
+  return { text: reply, conversationId: convId };
+}
+
 // Vercel-serverfunctie.
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.status(405).json({ error: "Method not allowed" });
     return;
   }
+  const body = req.body || {};
+  const token = (req.headers.authorization || "").replace(/^Bearer\s+/i, "").trim();
   try {
-    const text = await chat(req.body || {});
+    // Ingelogd + kind gekozen: opslaan in de database. Anders de oude,
+    // opslagloze modus (geschiedenis komt dan van de client mee).
+    if (token && body.childId) {
+      const out = await chatPersist({
+        token,
+        childId: body.childId,
+        conversationId: body.conversationId,
+        message: body.message,
+      });
+      res.status(200).json(out);
+      return;
+    }
+    const text = await chat(body);
     res.status(200).json({ text });
   } catch (err) {
-    const status = err && err.status === 400 ? 400 : 500;
+    const status = err && err.status ? err.status : 500;
     console.error("chat error:", err && err.message ? err.message : err);
     res
       .status(status)
