@@ -3,8 +3,8 @@
 Een werkende webversie van Kizzo om met een kleine groep bevriende gezinnen te testen. Geen app-installatie nodig: je kind opent gewoon een link in de browser, praat of typt met Kizzo, en jij kunt het gesprek op hetzelfde toestel teruglezen.
 
 Dit is bewust simpel gehouden voor een test:
-- Eén `index.html` (de app) + één serverfunctie (`api/chat.js`) die veilig met Claude praat.
-- Stem in en uit via de browser (geen extra diensten of sleutels nodig).
+- Eén `index.html` (de app) + serverfuncties: `api/chat.js` (praat veilig met Claude) en `api/tts.js` (natuurlijke stem via Google).
+- Stem in via de browser (microfoon). Stem uit via Google Cloud Text-to-Speech (natuurlijke Nederlandse stem); zonder Google-sleutel valt de app terug op de browserstem.
 - Gesprekken worden lokaal op het toestel bewaard, niet in een database.
 
 ## Online zetten (eenmalig, ~3 minuten)
@@ -13,9 +13,9 @@ De app moet ergens draaien omdat de Claude-sleutel veilig op de server moet staa
 
 1. Ga naar **vercel.com** en log in met **GitHub** (account NovaMundi).
 2. **Add New… → Project** en importeer de repo **`kizzo-proefversie`**.
-3. Open **Environment Variables** en voeg er één toe:
-   - Naam: `ANTHROPIC_API_KEY`
-   - Waarde: je Claude-sleutel (begint met `sk-ant-...`)
+3. Open **Environment Variables** en voeg toe:
+   - Naam: `ANTHROPIC_API_KEY` — waarde: je Claude-sleutel (begint met `sk-ant-...`)
+   - Naam: `GOOGLE_TTS_API_KEY` — waarde: je Google Cloud-sleutel voor Text-to-Speech (optioneel; zonder deze gebruikt de app de browserstem)
 4. Klik **Deploy**. Na een minuut krijg je een link zoals `https://kizzo-proefversie.vercel.app`.
 5. Stuur die link naar je testgezinnen. Klaar.
 

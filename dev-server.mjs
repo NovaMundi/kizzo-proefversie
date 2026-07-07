@@ -20,6 +20,7 @@ if (existsSync(envPath)) {
 
 // Import NA het laden van .env, zodat de Anthropic-client de sleutel ziet.
 const { chat } = await import("./api/chat.js");
+const { synthesize } = await import("./api/tts.js");
 
 const PORT = process.env.PORT || 3461;
 const TYPES = {
@@ -45,6 +46,25 @@ const server = http.createServer((req, res) => {
         console.error("chat fout:", e && e.message ? e.message : e);
         res.writeHead(500, { "content-type": "application/json" });
         res.end(JSON.stringify({ error: "serverfout: " + (e && e.message ? e.message : "onbekend") }));
+      }
+    });
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/api/tts") {
+    let raw = "";
+    req.on("data", (c) => (raw += c));
+    req.on("end", async () => {
+      try {
+        const body = raw ? JSON.parse(raw) : {};
+        const audio = await synthesize(body);
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(JSON.stringify({ audio }));
+      } catch (e) {
+        const status = e && e.status ? e.status : 500;
+        if (status !== 503) console.error("tts fout:", e && e.message ? e.message : e);
+        res.writeHead(status, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: e && e.message ? e.message : "TTS kon niet." }));
       }
     });
     return;

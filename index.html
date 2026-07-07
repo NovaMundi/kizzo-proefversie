@@ -323,10 +323,16 @@
       .replace(/\s{2,}/g," ")
       .trim();
   }
-  function speak(text){
-    if(!state.speak || !("speechSynthesis" in window)) return;
-    var clean=ttsClean(text);
-    if(!clean) return;
+  // Stopt alles wat nu klinkt: de cloud-audio én de browserstem.
+  var _audio=null, _ttsToken=0;
+  function stopSpeaking(){
+    _ttsToken++;
+    try{ if(_audio){ _audio.pause(); _audio.src=""; _audio=null; } }catch(e){}
+    try{ if("speechSynthesis" in window) window.speechSynthesis.cancel(); }catch(e){}
+  }
+  // Terugval: de ingebouwde browserstem (blikkeriger, maar altijd beschikbaar).
+  function browserSpeak(clean){
+    if(!("speechSynthesis" in window)) return;
     try{
       window.speechSynthesis.cancel();
       var u=new SpeechSynthesisUtterance(clean);
@@ -337,10 +343,33 @@
       window.speechSynthesis.speak(u);
     }catch(e){}
   }
+  function speak(text){
+    if(!state.speak) return;
+    var clean=ttsClean(text);
+    if(!clean) return;
+    stopSpeaking();
+    var myToken=_ttsToken;
+    // Probeer eerst de natuurlijke cloud-stem (Google). Lukt dat niet (geen
+    // sleutel, offline, fout), dan valt hij terug op de browserstem.
+    fetch("/api/tts",{method:"POST",headers:{"content-type":"application/json"},
+      body:JSON.stringify({text:clean,language:state.language,age:state.age})})
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(d){
+        if(myToken!==_ttsToken || !state.speak) return; // nieuwer bericht of stem uitgezet
+        if(d && d.audio){
+          var a=new Audio("data:audio/mp3;base64,"+d.audio);
+          _audio=a;
+          a.play().catch(function(){ browserSpeak(clean); });
+        } else {
+          browserSpeak(clean);
+        }
+      })
+      .catch(function(){ if(myToken===_ttsToken && state.speak) browserSpeak(clean); });
+  }
   $("speakToggle").addEventListener("click",function(){
     state.speak=!state.speak;
     this.classList.toggle("on",state.speak);
-    if(!state.speak && "speechSynthesis" in window) window.speechSynthesis.cancel();
+    if(!state.speak) stopSpeaking();
     save();
   });
 
