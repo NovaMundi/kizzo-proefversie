@@ -1,6 +1,6 @@
-# Kizzo proefversie
+# Kizzo
 
-Een werkende webversie van Kizzo om met een kleine groep bevriende gezinnen te testen. Geen app-installatie nodig: je kind opent gewoon een link in de browser, praat of typt met Kizzo, en jij kunt het gesprek op hetzelfde toestel teruglezen.
+Kizzo als webapp: een kindvriendelijk AI-leermaatje dat nieuwsgierige kinderen veilig laat ontdekken. Geen app-installatie nodig: je kind opent een link in de browser en praat of typt met Kizzo. Wordt momenteel doorontwikkeld van proefopstelling naar volledig product (zie `BOUWPLAN.md`).
 
 Dit is bewust simpel gehouden voor een test:
 - Eén `index.html` (de app) + serverfuncties: `api/chat.js` (praat veilig met Claude) en `api/tts.js` (natuurlijke stem via Google).

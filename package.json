@@ -1,9 +1,9 @@
 {
-  "name": "kizzo-proefversie",
+  "name": "kizzo",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Webversie van Kizzo om met een kleine testgroep gezinnen te testen.",
+  "description": "Kizzo: kindvriendelijke AI-leermaatje. Webapp op Vercel met Claude en Google TTS.",
   "scripts": {
     "dev": "node dev-server.mjs"
   },

@@ -96,7 +96,7 @@ async function resolvePhoto(topic, language) {
         `&generator=search&gsrsearch=${encodeURIComponent(topic)}&gsrnamespace=0&gsrlimit=5` +
         `&prop=pageimages|pageprops&piprop=thumbnail&pithumbsize=640&origin=*`;
       const r = await fetch(u, {
-        headers: { accept: "application/json", "user-agent": "KizzoProefversie/1.0 (kinder-leerproefversie)" },
+        headers: { accept: "application/json", "user-agent": "Kizzo/1.0 (kinder-leermaatje)" },
       });
       if (!r.ok) continue;
       const data = await r.json();
