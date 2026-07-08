@@ -1,6 +1,6 @@
 // Lokale dev-server: serveert de app EN het /api/chat-brein op één poort,
 // zodat je Kizzo op je eigen machine kunt testen zonder Vercel.
-// Nodig: ANTHROPIC_API_KEY in je omgeving (of in proefversie/.env).
+// Nodig: ANTHROPIC_API_KEY in je omgeving (of in app/.env).
 import http from "node:http";
 import { readFile } from "node:fs/promises";
 import { existsSync, readFileSync } from "node:fs";
@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// Lees proefversie/.env als die bestaat (simpel, geen extra pakket).
+// Lees app/.env als die bestaat (simpel, geen extra pakket).
 const envPath = join(__dirname, ".env");
 if (existsSync(envPath)) {
   for (const line of readFileSync(envPath, "utf8").split(/\r?\n/)) {
@@ -92,5 +92,5 @@ const server = http.createServer((req, res) => {
 server.listen(PORT, () => {
   const hasKey = !!process.env.ANTHROPIC_API_KEY;
   console.log("Kizzo dev-server: http://localhost:" + PORT);
-  if (!hasKey) console.log("LET OP: geen ANTHROPIC_API_KEY gevonden. Zet die in proefversie/.env of in je omgeving.");
+  if (!hasKey) console.log("LET OP: geen ANTHROPIC_API_KEY gevonden. Zet die in app/.env of in je omgeving.");
 });

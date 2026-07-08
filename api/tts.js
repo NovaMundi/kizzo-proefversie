@@ -1,6 +1,6 @@
 // Natuurlijke stem via Google Cloud Text-to-Speech (Neural2, Nederlands/Engels).
 // Werkt met een simpele API-sleutel: zet GOOGLE_TTS_API_KEY in de
-// omgevingsvariabelen (Vercel), of in proefversie/.env voor lokaal testen.
+// omgevingsvariabelen (Vercel), of in app/.env voor lokaal testen.
 // Geeft base64 MP3 terug. Zonder sleutel faalt hij netjes (status 503), zodat
 // de app terugvalt op de ingebouwde browserstem.
 export const maxDuration = 30;
